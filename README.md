@@ -1,6 +1,16 @@
 # Online Cinema API
 
-A robust backend service for an online cinema platform. This project is part of a technical assessment designed to showcase full-stack development skills, modern Python practices, and architectural design.
+A professional backend service for an online cinema platform. This project showcases modern Python development practices, asynchronous API design, and automated infrastructure.
+
+## Implemented Features (Project Scope)
+1. **Authorization & Authentication:** Secure registration, JWT-based login (access/refresh tokens), and Role-Based Access Control (User, Moderator, Admin).
+2. **Movie Catalog:** Full-featured catalog with searching, filtering (by genre, year, rating), and sorting capabilities.
+3. **Shopping Cart:** Ability for users to manage their movie selections before purchasing.
+4. **Order Management:** Transformation of cart items into orders with status tracking.
+5. **Dependency Management:** Built with **Poetry** for reliable environment reproducibility.
+6. **Containerization:** Fully dockerized environment using **Docker Compose** (API, PostgreSQL, Redis).
+7. **API Documentation:** Interactive **Swagger/OpenAPI** documentation for all endpoints.
+8. **Automated Testing:** High code coverage using **Pytest** for business logic and API endpoints.
 
 ## Tech Stack
 - **Python 3.13**
