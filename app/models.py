@@ -1,5 +1,8 @@
 import enum
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Enum, Text, Table
+import uuid
+
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Enum, Text, Table, Float, Numeric, \
+    UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -40,6 +43,8 @@ class User(Base):
     activation_token = relationship("ActivationToken", back_populates="user", uselist=False,
                                     cascade="all, delete-orphan")
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
+    password_reset_token = relationship("PasswordResetToken", back_populates="user", uselist=False,
+                                        cascade="all, delete-orphan")
 
 
 class UserProfile(Base):
@@ -48,7 +53,9 @@ class UserProfile(Base):
     user_id = Column(Integer, ForeignKey("users.id"), unique=True)
     first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
+    avatar = Column(String, nullable=True)
     gender = Column(Enum(GenderEnum), nullable=True)
+    date_of_birth = Column(DateTime(timezone=True), nullable=True)
     info = Column(Text, nullable=True)
 
     user = relationship("User", back_populates="profile")
@@ -76,15 +83,30 @@ class RefreshToken(Base):
     user = relationship("User", back_populates="refresh_tokens")
 
 
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+    id = Column(Integer, primary_key=True, index=True, unique=True)
+    password_reset_token = Column(String, nullable=False, index=True, unique=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+
+    users_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    user = relationship("User", back_populates="password_reset_token")
+
+
 movie_genres = Table("movie_genres", Base.metadata,
                      Column("movie_id", Integer, ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True),
                      Column("genre_id", Integer, ForeignKey("genres.id", ondelete="CASCADE"), primary_key=True),
                      )
 
-movie_actors = Table("movie_actors", Base.metadata,
-                     Column("movie_id", Integer, ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True),
-                     Column("actor_id", Integer, ForeignKey("actors.id", ondelete="CASCADE"), primary_key=True),
-                     )
+movie_directors = Table("movie_directors", Base.metadata,
+                        Column("movie_id", Integer, ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True),
+                        Column("director_id", Integer, ForeignKey("directors.id", ondelete="CASCADE"),
+                               primary_key=True), )
+
+movie_stars = Table("movie_stars", Base.metadata,
+                    Column("movie_id", Integer, ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True),
+                    Column("star_id", Integer, ForeignKey("stars.id", ondelete="CASCADE"), primary_key=True), )
 
 
 class Genre(Base):
@@ -94,24 +116,47 @@ class Genre(Base):
     movies = relationship("Movie", secondary=movie_genres, back_populates="genres")
 
 
-class Actor(Base):
-    __tablename__ = "actors"
+class Star(Base):
+    __tablename__ = "stars"
     id = Column(Integer, primary_key=True, index=True)
-    first_name = Column(String, nullable=False)
-    last_name = Column(String, nullable=False)
-    birth_date = Column(DateTime, nullable=False)
-    movies = relationship("Movie",secondary=movie_actors, back_populates="actors")
+    name = Column(String, nullable=False, unique=True)
+    movies = relationship("Movie", secondary=movie_stars, back_populates="stars")
 
+
+class Director(Base):
+    __tablename__ = "directors"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False, unique=True)
+    movies = relationship("Movie", secondary=movie_directors, back_populates="directors")
+
+
+class Certification(Base):
+    __tablename__ = "certifications"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False, unique=True)
+
+    movies = relationship("Movie", back_populates="certification")
 
 class Movie(Base):
     __tablename__ = "movies"
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, nullable=False)
-    description = Column(Text, nullable=True)
-    release_date = Column(DateTime(timezone=True), nullable=False)
-    duration = Column(Integer, nullable=False)
+    uuid = Column(String, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
+    name = Column(String, nullable=False)
+    year = Column(Integer, nullable=False)
+    time = Column(Integer, nullable=False)
+    imdb = Column(Float, nullable=False)
+    votes = Column(Integer, nullable=False)
+    meta_score = Column(Float, nullable=True)
+    gross = Column(Float, nullable=True)
+    description = Column(Text, nullable=False)
+    price = Column(Numeric(10, 2), nullable=False)
 
-    genres = relationship("Genre", secondary=movie_genres,  back_populates="movies")
-    actors = relationship("Actor", secondary=movie_actors,  back_populates="movies")
+    certification_id = Column(Integer, ForeignKey("certifications.id", ondelete="CASCADE"), nullable=False)
 
-    image_url = Column(String, nullable=True)
+    certification = relationship("Certification", back_populates="movies")
+    genres = relationship("Genre", secondary=movie_genres, back_populates="movies")
+    stars = relationship("Star", secondary=movie_stars, back_populates="movies")
+    directors = relationship("Director", secondary=movie_directors, back_populates="movies")
+    __table_args__ = (
+        UniqueConstraint("name", "year", "time", name="_movie_year_time_uc"),
+    )
