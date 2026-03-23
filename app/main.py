@@ -7,6 +7,8 @@ from app.schemas import users as user_schemas
 
 from datetime import datetime, timedelta, timezone
 import secrets
+from app.dependencies import get_admin_user, get_current_user, get_moderator_or_admin
+from app.schemas.base import UserGroupEnum
 
 app = FastAPI(title="Online Cinema API")
 
@@ -55,6 +57,11 @@ def activate_user(token: str, db: Session = Depends(get_db)):
 
     user = db_token.user
     user.is_active = True
+
+    user_group = db.query(models.UserGroup).filter(models.UserGroup.name == UserGroupEnum.USER).first()
+    if user_group:
+        user.group_id = user_group.id
+
     db.delete(db_token)
     db.commit()
 
@@ -75,7 +82,7 @@ def user_login(user_data: user_schemas.UserLogin, db: Session = Depends(get_db))
     refresh_token = security.create_refresh_token(data={"sub": user_data.email})
     expired_at = datetime.now(timezone.utc) + timedelta(days=security.REFRESH_TOKEN_EXPIRE_DAYS)
 
-    db_refresh_token =  models.RefreshToken(
+    db_refresh_token = models.RefreshToken(
         token=refresh_token,
         users_id=db_user.id,
         expires_at=expired_at,
@@ -84,3 +91,21 @@ def user_login(user_data: user_schemas.UserLogin, db: Session = Depends(get_db))
     db.commit()
 
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "Bearer"}
+
+
+@app.get("/users/me", response_model=user_schemas.UserResponse, status_code=status.HTTP_200_OK)
+def read_users_me(current_user: models.User = Depends(get_current_user)):
+    """ This route returns a logged-in  user """
+    return current_user
+
+
+@app.get("/admin-only", response_model=user_schemas.UserResponse, status_code=status.HTTP_200_OK)
+def admin_only(current_user: models.User = Depends(get_admin_user)):
+    """ This route is only for admins """
+    return current_user
+
+
+@app.get("/content-management", response_model=user_schemas.UserResponse, status_code=status.HTTP_200_OK)
+def content_management(current_user: models.User = Depends(get_moderator_or_admin)):
+    """ This route is only for moderators or admins """
+    return current_user
