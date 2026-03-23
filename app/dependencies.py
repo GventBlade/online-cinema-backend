@@ -47,7 +47,7 @@ def get_admin_user(current_user: models.User = Depends(get_current_user)):
 
 
 def get_moderator_or_admin(current_user: models.User = Depends(get_current_user)):
-    if current_user.group.name not in [UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN]:
+    if not  current_user.group or current_user.group.name not in  [UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have moderator permissions",

@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 import secrets
 from app.dependencies import get_admin_user, get_current_user, get_moderator_or_admin
 from app.schemas.base import UserGroupEnum
-
+from fastapi.security import OAuth2PasswordRequestForm
 app = FastAPI(title="Online Cinema API")
 
 
@@ -69,8 +69,8 @@ def activate_user(token: str, db: Session = Depends(get_db)):
 
 
 @app.post("/login", response_model=user_schemas.Token, status_code=status.HTTP_200_OK)
-def user_login(user_data: user_schemas.UserLogin, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.email == user_data.email).first()
+def user_login(user_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.email == user_data.username).first()
     if not db_user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     user_password = security.verify_password(user_data.password, db_user.hashed_password)
@@ -78,8 +78,8 @@ def user_login(user_data: user_schemas.UserLogin, db: Session = Depends(get_db))
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not db_user.is_active:
         raise HTTPException(status_code=401, detail="Inactive user")
-    access_token = security.create_access_token(data={"sub": user_data.email})
-    refresh_token = security.create_refresh_token(data={"sub": user_data.email})
+    access_token = security.create_access_token(data={"sub": user_data.username})
+    refresh_token = security.create_refresh_token(data={"sub": user_data.username})
     expired_at = datetime.now(timezone.utc) + timedelta(days=security.REFRESH_TOKEN_EXPIRE_DAYS)
 
     db_refresh_token = models.RefreshToken(
