@@ -1,6 +1,6 @@
 from fastapi.params import Depends
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.schemas.base import UserGroupEnum
 from app.security import SECRET_KEY, ALGORITHM
@@ -28,10 +28,13 @@ def get_current_user(token: str = Depends(oauth2_scheme),
     except JWTError:
         raise credentials_exception
 
-    user = db.query(models.User).filter(models.User.email == email).first()
+    user = db.query(models.User).options(joinedload(models.User.group), joinedload(models.User.profile)).filter(models.User.email == email).first()
 
     if not user:
         raise credentials_exception
+
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is inactive")
 
     return user
 
