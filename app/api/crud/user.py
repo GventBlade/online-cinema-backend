@@ -127,3 +127,11 @@ def delete_reset_token(db: Session, token: str):
         db.commit()
         return True
     return False
+
+
+def update_user_password(db: Session, user: models.User, new_password: str):
+    user.hashed_password = security.get_password_hash(new_password)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user

@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone, tzinfo
 
 from app import models, security
-from app.api.crud.user import create_password_reset_token
 from app.database import get_db
 from app.schemas import users as user_schemas
 from app.dependencies import get_current_user
@@ -106,7 +105,7 @@ def password_reset(data: user_schemas.RequestEmail, db: Session = Depends(get_db
     if not user:
         return {"message": "If an account with that email exists, a password reset link has been sent."}
 
-    db_token = create_password_reset_token(db, user_id=user.id)
+    db_token = crud_user.create_password_reset_token(db, user_id=user.id)
 
     print(f"DEBUG: Password reset token for {user.email}: {db_token.password_reset_token}")
     return {"message": "Password reset link sent to your email"}
@@ -120,3 +119,17 @@ def password_reset_confirm(data: user_schemas.PasswordResetConfirm, db: Session 
         raise HTTPException(status_code=400, detail="Password reset token has expired")
 
     return {"message": "Password changed successfully. You can now log in with your new password."}
+
+
+@router.post("/password-change", status_code=status.HTTP_200_OK)
+def change_password(
+    data: user_schemas.PasswordChange,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if not security.verify_password(data.old_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect old password")
+
+    crud_user.update_user_password(db, user=current_user, new_password=data.new_password)
+
+    return {"message": "Password changed successfully"}
