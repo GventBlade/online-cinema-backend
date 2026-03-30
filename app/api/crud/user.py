@@ -41,7 +41,7 @@ def create_user(db: Session ,user_in: users_schema.UserCreate)-> tuple[models.Us
 def activate_user_account(db: Session, token: str):
     db_token = db.query(models.ActivationToken).filter(models.ActivationToken.token == token).first()
     if not db_token:
-        raise HTTPException(status_code=404, detail="Activation token not found")
+        raise HTTPException(status_code=404, detail="Invalid token")
 
     now = datetime.now(timezone.utc)
     if db_token.expires_at.replace(tzinfo=timezone.utc) < now:
@@ -49,7 +49,7 @@ def activate_user_account(db: Session, token: str):
         db.commit()
         return False
 
-    user  = db_token.user
+    user = db_token.user
     user.is_active = True
 
     user_group = db.query(models.UserGroup).filter(models.UserGroup.name == UserGroupEnum.USER).first()
