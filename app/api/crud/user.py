@@ -135,3 +135,23 @@ def update_user_password(db: Session, user: models.User, new_password: str):
     db.commit()
     db.refresh(user)
     return user
+
+
+def refresh_activation_token(db: Session, email: str):
+    user = get_user_by_email(db, email=email)
+    if not user or user.is_active is True:
+        return None
+
+    db.query(models.ActivationToken).filter(models.ActivationToken.users_id == user.id).delete()
+
+    token_value = secrets.token_urlsafe(32)
+    db_token = models.ActivationToken(
+        token=token_value,
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
+        users_id = user.id
+    )
+
+    db.add(db_token)
+    db.commit()
+
+    return token_value

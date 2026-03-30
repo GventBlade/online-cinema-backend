@@ -133,3 +133,14 @@ def change_password(
     crud_user.update_user_password(db, user=current_user, new_password=data.new_password)
 
     return {"message": "Password changed successfully"}
+
+
+@router.post("/resend-activation", status_code=status.HTTP_200_OK)
+def resend_activation_token(data: user_schemas.RequestEmail, db: Session = Depends(get_db)):
+    new_token = crud_user.refresh_activation_token(db, email=data.email)
+
+    if new_token is None:
+        return {"message": "If the account is not activated, a new link has been sent."}
+
+    print(f"DEBUG: New Activation token for {data.email}: {new_token}")
+    return {"message": "A new activation link has been sent to your email."}
