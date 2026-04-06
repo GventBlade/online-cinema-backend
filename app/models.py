@@ -112,7 +112,7 @@ movie_stars = Table("movie_stars", Base.metadata,
 class Genre(Base):
     __tablename__ = "genres"
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
+    name = Column(String, nullable=False, unique=True)
     movies = relationship("Movie", secondary=movie_genres, back_populates="genres")
 
 
