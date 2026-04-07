@@ -8,3 +8,8 @@ class UserGroupEnum(str, Enum):
 class GenderEnum(str, Enum):
     MAN = "MAN"
     WOMAN = "WOMAN"
+
+
+class ReactionEnum(str, Enum):
+    LIKE = "LIKE"
+    DISLIKE = "DISLIKE"

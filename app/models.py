@@ -3,7 +3,7 @@ import uuid
 
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Enum, Text, Table, Float, Numeric, \
     UniqueConstraint
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from sqlalchemy.sql import func
 from app.database import Base
 
@@ -45,6 +45,11 @@ class User(Base):
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
     password_reset_token = relationship("PasswordResetToken", back_populates="user", uselist=False,
                                         cascade="all, delete-orphan")
+    favorites = relationship("Favorite", back_populates="user", cascade="all, delete-orphan")
+    comments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")
+    ratings = relationship("Rating", back_populates="user", cascade="all, delete-orphan")
+    reactions = relationship("MovieReaction", back_populates="user", cascade="all, delete-orphan")
+    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
 
 
 class UserProfile(Base):
@@ -157,6 +162,80 @@ class Movie(Base):
     genres = relationship("Genre", secondary=movie_genres, back_populates="movies")
     stars = relationship("Star", secondary=movie_stars, back_populates="movies")
     directors = relationship("Director", secondary=movie_directors, back_populates="movies")
+    favorites = relationship("Favorite", back_populates="movie", cascade="all, delete-orphan")
+    comments = relationship("Comment", back_populates="movie", cascade="all, delete-orphan")
+    ratings = relationship("Rating", back_populates="movie", cascade="all, delete-orphan")
+    reactions = relationship("MovieReaction", back_populates="movie", cascade="all, delete-orphan")
     __table_args__ = (
         UniqueConstraint("name", "year", "time", name="_movie_year_time_uc"),
     )
+
+
+class Favorite(Base):
+    __tablename__ = "favorites"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    movie_id = Column(Integer, ForeignKey("movies.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="favorites")
+    movie = relationship("Movie", back_populates="favorites")
+
+    __table_args__ = (UniqueConstraint("user_id", "movie_id", name="_user_movie_favorite_uc"),)
+
+
+class ReactionEnum(str, enum.Enum):
+    LIKE = "LIKE"
+    DISLIKE = "DISLIKE"
+
+
+class MovieReaction(Base):
+    __tablename__ = "movie_reactions"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    movie_id = Column(Integer, ForeignKey("movies.id", ondelete="CASCADE"), nullable=False)
+    reaction = Column(Enum(ReactionEnum), nullable=False)
+
+    user = relationship("User", back_populates="reactions")
+    movie = relationship("Movie", back_populates="reactions")
+
+    __table_args__ = (UniqueConstraint("user_id", "movie_id", name="_user_movie_reaction_uc"),)
+
+
+class Comment(Base):
+    __tablename__ = "comments"
+    id = Column(Integer, primary_key=True, index=True)
+    text = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    movie_id = Column(Integer, ForeignKey("movies.id", ondelete="CASCADE"), nullable=False)
+    parent_id = Column(Integer, ForeignKey("comments.id", ondelete="CASCADE"), nullable=True)
+
+    user = relationship("User", back_populates="comments")
+    movie = relationship("Movie", back_populates="comments")
+    replies = relationship("Comment", backref=backref("parent", remote_side=[id]), cascade="all, delete-orphan")
+
+
+class Rating(Base):
+    __tablename__ = "ratings"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    movie_id = Column(Integer, ForeignKey("movies.id", ondelete="CASCADE"), nullable=False)
+    score = Column(Integer, nullable=False)
+
+    user = relationship("User", back_populates="ratings")
+    movie = relationship("Movie", back_populates="ratings")
+
+    __table_args__ = (UniqueConstraint("user_id", "movie_id", name="_user_movie_rating_uc"),)
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    message = Column(String, nullable=False)
+    is_read = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="notifications")

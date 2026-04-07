@@ -1,17 +1,22 @@
+from __future__ import annotations
+
+from datetime import datetime
 from decimal import Decimal
 from typing import Optional, Annotated, List
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.users import UserResponse
+from app.schemas.base import ReactionEnum
 
 
 class NameBase(BaseModel):
     name: str
 
+
 class IdResponse(BaseModel):
     id: int
     model_config = ConfigDict(from_attributes=True)
-
 
 
 class GenreCreate(NameBase): pass
@@ -80,3 +85,47 @@ class MovieUpdate(BaseModel):
     genre_ids: Optional[List[int]] = None
     star_ids: Optional[List[int]] = None
     director_ids: Optional[List[int]] = None
+
+
+class CommentCreate(BaseModel):
+    text: str
+    parent_id: Optional[int] = None
+
+
+class CommentResponse(BaseModel, IdResponse):
+    text: str
+    created_at: Optional[datetime]
+    replies: List[CommentResponse] = Field(default_factory=list)
+    user: UserResponse
+
+CommentResponse.model_rebuild()
+
+
+class ReactionCreate(BaseModel):
+    reaction: ReactionEnum
+
+
+class ReactionResponse(BaseModel, IdResponse):
+    user_id: int
+    movie_id: int
+
+
+class RatingCreate(BaseModel):
+    score: Annotated[int, Field(gt=0, le=10)]
+
+
+class RatingResponse(RatingCreate, IdResponse):
+    pass
+
+class FavoriteCreate(BaseModel):
+    movie_id: int
+
+
+class FavoriteResponse(FavoriteCreate, IdResponse):
+    pass
+
+
+class NotificationsResponse(BaseModel, IdResponse):
+    message: str
+    is_read: bool = False
+    created_at: datetime

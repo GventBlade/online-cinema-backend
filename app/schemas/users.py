@@ -1,10 +1,11 @@
 from pydantic import BaseModel, EmailStr, ConfigDict, Field, field_validator
 import re
-from typing import Optional, Annotated
+from typing import Optional, Annotated, List
 
 from datetime import datetime
 
 from app.schemas.base import GenderEnum
+from app.schemas.movies import FavoriteResponse, CommentResponse, NotificationsResponse
 
 StrongPassword = Annotated[str, Field(min_length=8, max_length=64)]
 
@@ -50,6 +51,10 @@ class UserResponse(BaseModel):
     is_active: bool
     group: UserGroupResponse
     profile: Optional[UserProfile]
+
+    favorites: List[FavoriteResponse] = []
+    comments: List[CommentResponse] = []
+    notifications: List[NotificationsResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
 
