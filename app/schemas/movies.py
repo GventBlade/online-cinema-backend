@@ -24,6 +24,8 @@ class GenreCreate(NameBase): pass
 
 class GenreResponse(NameBase, IdResponse): pass
 
+class GenreWithCountResponse(GenreResponse):
+    movies_count: int
 
 class StarCreate(NameBase): pass
 
@@ -129,3 +131,9 @@ class NotificationsResponse(BaseModel, IdResponse):
     message: str
     is_read: bool = False
     created_at: datetime
+
+
+class MovieAverageRatingResponse(BaseModel):
+    movie_id: int
+    average: float
+

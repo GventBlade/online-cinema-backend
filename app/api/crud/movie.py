@@ -6,6 +6,7 @@ from app.models import Genre, Star, Director, Certification, Movie
 from app.schemas import movies as movies_schema
 
 from sqlalchemy import or_, func
+from typing import Optional
 
 
 def create_genre(db: Session, genre_in: movies_schema.GenreCreate) -> Genre:
@@ -87,17 +88,27 @@ def get_movie(db: Session, movie_id: int):
     return db.query(Movie).filter(Movie.id == movie_id).first()
 
 
-def get_movies(db: Session,
+def get_movies(
+    db: Session,
     skip: int = 0,
     limit: int = 10,
-    search: str = None,
-    year: int = None,
-    min_rating: float = None,
-    max_rating: float = None,
-    genre_id = None,
+    search: Optional[str] = None,
+    year: Optional[int] = None,
+    min_rating: Optional[float] = None,
+    max_rating: Optional[float] = None,
+    genre_id: Optional[int] = None,
     sort_by: str = "year",
-    order: str = "desc"):
+    order: str = "desc",
+    user_id: Optional[int] = None
+):
     query = db.query(models.Movie)
+
+
+    if user_id:
+
+        query = query.join(models.Favorite).filter(models.Favorite.user_id == user_id)
+
+
     if search:
         query = query.filter(
             or_(
@@ -108,15 +119,20 @@ def get_movies(db: Session,
                 models.Movie.genres.any(models.Genre.name.ilike(f"%{search}%"))
             )
         )
+
+
     if year:
         query = query.filter(models.Movie.year == year)
 
     if min_rating:
         query = query.filter(models.Movie.imdb >= min_rating)
+
     if max_rating:
         query = query.filter(models.Movie.imdb <= max_rating)
+
     if genre_id:
         query = query.filter(models.Movie.genres.any(models.Genre.id == genre_id))
+
 
     sort_options = {
         "price": models.Movie.price,
@@ -126,11 +142,13 @@ def get_movies(db: Session,
     }
 
     sort_attr = sort_options.get(sort_by, models.Movie.year)
+
     if order == "desc":
         query = query.order_by(sort_attr.desc())
     else:
         query = query.order_by(sort_attr.asc())
 
+    # 5. Пагінація
     return query.offset(skip).limit(limit).all()
 
 
@@ -188,6 +206,6 @@ def get_stars(db: Session, skip: int = 0, limit: int = 10):
 def get_genres_with_count(db: Session):
     return db.query(
         models.Genre,
-        func.count(models.Movie.genres).label("movies_count")
-    ).outerjoin(models.Genre.movies) \
-     .group_by(models.Genre.id).all()
+        func.count(models.Movie.id).label("movies_count")
+    ).outerjoin(models.Movie.genres) \
+        .group_by(models.Genre.id).all()
