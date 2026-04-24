@@ -2,7 +2,7 @@ import enum
 import uuid
 
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Enum, Text, Table, Float, Numeric, \
-    UniqueConstraint
+    UniqueConstraint, DECIMAL
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.sql import func
 from app.database import Base
@@ -50,7 +50,8 @@ class User(Base):
     ratings = relationship("Rating", back_populates="user", cascade="all, delete-orphan")
     reactions = relationship("MovieReaction", back_populates="user", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
-
+    cart = relationship("Cart", back_populates="user", uselist=False ,cascade="all, delete-orphan")
+    orders = relationship("Order", back_populates="user", cascade="all, delete-orphan")
 
 class UserProfile(Base):
     __tablename__ = "user_profiles"
@@ -166,6 +167,9 @@ class Movie(Base):
     comments = relationship("Comment", back_populates="movie", cascade="all, delete-orphan")
     ratings = relationship("Rating", back_populates="movie", cascade="all, delete-orphan")
     reactions = relationship("MovieReaction", back_populates="movie", cascade="all, delete-orphan")
+    cart_items = relationship("CartItem", back_populates="movie", cascade="all, delete-orphan")
+    order_items = relationship("OrderItem", back_populates="movie")
+
     __table_args__ = (
         UniqueConstraint("name", "year", "time", name="_movie_year_time_uc"),
     )
@@ -239,3 +243,52 @@ class Notification(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="notifications")
+
+
+class Cart(Base):
+    __tablename__ = "carts"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
+    items = relationship("CartItem", back_populates="cart", cascade="all, delete-orphan")
+
+class CartItem(Base):
+    __tablename__ = "cart_items"
+    id = Column(Integer, primary_key=True, index=True)
+    cart_id = Column(Integer, ForeignKey("carts.id", ondelete="CASCADE"), nullable=False)
+    movie_id = Column(Integer, ForeignKey("movies.id", ondelete="CASCADE"), nullable=False)
+    added_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    cart = relationship("Cart", back_populates="items")
+    movie = relationship("Movie", back_populates="items")
+
+    __table_args__ = (UniqueConstraint("cart_id", "movie_id", name="uq_cart_movie"),)
+
+
+class OrderStatusEnum(str, enum.Enum):
+    PENDING = "PENDING"
+    PAID = "PAID"
+    CANCELED = "CANCELED"
+
+
+class Order(Base):
+    __tablename__ = "orders"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    status = Column(Enum(OrderStatusEnum), nullable=False, default=OrderStatusEnum.PENDING)
+    total_amount = Column(DECIMAL(10,2), nullable=False)
+
+    user = relationship("User", back_populates="orders")
+    items  = relationship("OrderItem", back_populates="order")
+
+
+class OrderItem(Base):
+    __tablename__ = "order_items"
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False)
+    movie_id = Column(Integer, ForeignKey("movies.id", ondelete="CASCADE"), nullable=False)
+    price_at_order = Column(DECIMAL(10,2), nullable=False)
+
+    order = relationship("Order", back_populates="items")
+    movie = relationship("Movie", back_populates="items")
+
