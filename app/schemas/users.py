@@ -1,11 +1,12 @@
 from pydantic import BaseModel, EmailStr, ConfigDict, Field, field_validator
 import re
-from typing import Optional, Annotated, List
+from typing import Optional, Annotated, List, TYPE_CHECKING
 
 from datetime import datetime
 
 from app.schemas.base import GenderEnum
-from app.schemas.movies import FavoriteResponse, CommentResponse, NotificationsResponse
+from app.schemas import movies as movies_schemas
+if TYPE_CHECKING: from app.schemas.movies import FavoriteResponse, CommentResponse, NotificationsResponse
 
 StrongPassword = Annotated[str, Field(min_length=8, max_length=64)]
 
@@ -52,12 +53,11 @@ class UserResponse(BaseModel):
     group: UserGroupResponse
     profile: Optional[UserProfile]
 
-    favorites: List[FavoriteResponse] = []
-    comments: List[CommentResponse] = []
-    notifications: List[NotificationsResponse] = []
+    favorites: List["movies_schemas.FavoriteResponse"] = []
+    comments: List["movies_schemas.CommentResponse"] = []
+    notifications: List["movies_schemas.NotificationsResponse"] = []
 
     model_config = ConfigDict(from_attributes=True)
-
 
 class Token(BaseModel):
     access_token: str
@@ -91,3 +91,5 @@ class PasswordChange(PasswordMixin):
     old_password: str = Field(...)
     new_password: StrongPassword
 
+
+UserResponse.model_rebuild(_types_namespace={'movies_schemas': movies_schemas})
