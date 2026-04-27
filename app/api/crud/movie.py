@@ -1,8 +1,7 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
-
 from app import models
-from app.models import Genre, Star, Director, Certification, Movie
+from app.models import Genre, Star, Director, Certification, Movie, OrderItem, Order, OrderStatusEnum
 from app.schemas import movies as movies_schema
 
 from sqlalchemy import or_, func
@@ -148,7 +147,6 @@ def get_movies(
     else:
         query = query.order_by(sort_attr.asc())
 
-    # 5. Пагінація
     return query.offset(skip).limit(limit).all()
 
 
@@ -185,7 +183,13 @@ def update_movie(db: Session, db_movie: Movie, movie_in: movies_schema.MovieUpda
 
 
 def delete_movie(db: Session, db_movie: Movie):
-    # TODO: Додати перевірку: "Prevent the deletion of a movie if at least one user has purchased it"
+    purchased = db.query(OrderItem).join(Order).filter(
+        OrderItem.movie_id == db_movie.id,
+        Order.status == OrderStatusEnum.PAID,
+    ).first()
+    if purchased:
+        raise HTTPException(status_code=400,
+                            detail="Cannot delete movie: it has already been purchased by users.")
 
     db.delete(db_movie)
     db.commit()

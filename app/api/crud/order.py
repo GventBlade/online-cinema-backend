@@ -87,3 +87,13 @@ def cancel_order(db: Session, order_id: int, user_id: int):
         raise HTTPException(status_code=400, detail="Could not cancel order")
 
     return order
+
+
+def get_order_by_id(db: Session, order_id: int, user_id: int):
+    return db.query(Order).options(
+        joinedload(Order.items).joinedload(OrderItem.movie)
+    ).filter(
+        Order.id == order_id,
+        Order.user_id == user_id
+    ).first()
+
