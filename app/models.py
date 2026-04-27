@@ -52,6 +52,8 @@ class User(Base):
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
     cart = relationship("Cart", back_populates="user", uselist=False ,cascade="all, delete-orphan")
     orders = relationship("Order", back_populates="user", cascade="all, delete-orphan")
+    payments = relationship("Payment", back_populates="user")
+
 
 class UserProfile(Base):
     __tablename__ = "user_profiles"
@@ -249,6 +251,7 @@ class Cart(Base):
     __tablename__ = "carts"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
+    user = relationship("User", back_populates="cart")
     items = relationship("CartItem", back_populates="cart", cascade="all, delete-orphan")
 
 class CartItem(Base):
@@ -259,7 +262,7 @@ class CartItem(Base):
     added_at = Column(DateTime(timezone=True), server_default=func.now())
 
     cart = relationship("Cart", back_populates="items")
-    movie = relationship("Movie", back_populates="items")
+    movie = relationship("Movie", back_populates="cart_items")
 
     __table_args__ = (UniqueConstraint("cart_id", "movie_id", name="uq_cart_movie"),)
 
@@ -280,6 +283,7 @@ class Order(Base):
 
     user = relationship("User", back_populates="orders")
     items  = relationship("OrderItem", back_populates="order")
+    payments = relationship("Payment", back_populates="order")
 
 
 class OrderItem(Base):
@@ -290,5 +294,40 @@ class OrderItem(Base):
     price_at_order = Column(DECIMAL(10,2), nullable=False)
 
     order = relationship("Order", back_populates="items")
-    movie = relationship("Movie", back_populates="items")
+    movie = relationship("Movie", back_populates="order_items")
+    payment_items = relationship("PaymentItem", back_populates="order_item")
 
+
+class PaymentStatus(str, enum.Enum):
+    SUCCESSFUL = "successful"
+    CANCELED = "canceled"
+    REFUNDED = "refunded"
+
+
+class Payment(Base):
+    __tablename__ = "payments"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False)
+
+    amount = Column(DECIMAL(10,2), nullable=False)
+    status = Column(Enum(PaymentStatus), default=PaymentStatus.SUCCESSFUL, nullable=False)
+    external_payment_id = Column(String, nullable=True, index=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="payments")
+    order = relationship("Order", back_populates="payments")
+    items = relationship("PaymentItem", back_populates="payment", cascade="all, delete-orphan")
+
+
+class  PaymentItem(Base):
+    __tablename__ = "payment_items"
+    id = Column(Integer, primary_key=True, index=True)
+    payment_id = Column(Integer, ForeignKey("payments.id", ondelete="CASCADE"), nullable=False)
+    order_item_id = Column(Integer, ForeignKey("order_items.id", ondelete="CASCADE"), nullable=False)
+
+    price_at_payment = Column(DECIMAL(10,2), nullable=False)
+
+    payment = relationship("Payment", back_populates="items")
+    order_item = relationship("OrderItem", back_populates="payment_items")
