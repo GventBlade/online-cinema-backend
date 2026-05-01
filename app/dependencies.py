@@ -8,7 +8,7 @@ from app import database, models
 from jose import jwt, JWTError
 from fastapi import status, HTTPException
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
 def get_current_user(token: str = Depends(oauth2_scheme),
@@ -28,7 +28,10 @@ def get_current_user(token: str = Depends(oauth2_scheme),
     except JWTError:
         raise credentials_exception
 
-    user = db.query(models.User).options(joinedload(models.User.group), joinedload(models.User.profile)).filter(models.User.email == email).first()
+    user = db.query(models.User).options(
+        joinedload(models.User.group),
+        joinedload(models.User.profile)
+    ).filter(models.User.id == int(email)).first()
 
     if not user:
         raise credentials_exception

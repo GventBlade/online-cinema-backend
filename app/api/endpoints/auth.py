@@ -20,6 +20,8 @@ def register_user(user_data: user_schemas.UserCreate, db: Session = Depends(get_
 
     new_user, token_value = crud_user.create_user(db, user_in=user_data)
 
+    db.refresh(new_user)
+
     print(f"DEBUG: Activation token for {new_user.email}: {token_value} ")
 
     return new_user

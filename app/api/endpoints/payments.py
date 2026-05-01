@@ -1,16 +1,20 @@
-from typing import Optional
-
-from fastapi import APIRouter, Header, HTTPException, Request, Depends
-from app.core.config import settings
+from datetime import date
+from typing import Optional, List
 import stripe
-from app.database import SessionLocal
+import traceback
+
+from fastapi import APIRouter, Header, HTTPException, Request, Depends, BackgroundTasks
+from sqlalchemy.orm import Session, joinedload
+
+from app.core.config import settings
+from app.database import SessionLocal, get_db
 from app.dependencies import get_current_user
-from app.database import get_db
-from sqlalchemy.orm import Session
-from app.api.crud import order as order_crud
-from app.models import OrderStatusEnum
+from app.models import Order, OrderStatusEnum, PaymentStatus, Payment, PaymentItem
 from app.services.payment_service import PaymentService
+from app.services.email_service import EmailService
 from app.schemas.payments import PaymentResponse
+from app.api.crud import order as order_crud
+from app.api.crud.payment import create_payment_record, get_user_payment_history, get_all_payments_admin
 
 router = APIRouter()
 
@@ -21,7 +25,7 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 async def create_checkout_session(
     order_id: int,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user=Depends(get_current_user)
 ):
     order = order_crud.get_order_by_id(db, order_id=order_id, user_id=current_user.id)
     if not order:
@@ -32,7 +36,11 @@ async def create_checkout_session(
 
 
 @router.post("/webhook")
-async def stripe_webhook(request: Request, stripe_signature: str = Header(None)):
+async def stripe_webhook(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    stripe_signature: str = Header(None)
+):
     payload = await request.body()
 
     try:
@@ -40,59 +48,146 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
             payload, stripe_signature, settings.STRIPE_WEBHOOK_SECRET
         )
     except (ValueError, stripe.error.SignatureVerificationError) as e:
-        print(f"❌ Webhook signature verification failed: {e}")
+        print(f"⚠️ Webhook signature verification failed: {e}")
         raise HTTPException(status_code=400, detail="Invalid webhook signature")
 
+    print(f"📡 Received Stripe event: {event['type']}")
+
+    event_data = event.to_dict()
+    data_object = event_data.get('data', {}).get('object', {})
+
+    # 1. PROCESSING SUCCESSFUL PAYMENT
     if event['type'] == 'checkout.session.completed':
-        session = event['data']['object']
+        session_id = data_object.get('id')
+        print(f"🔔 Processing checkout.session.completed: {session_id}")
 
         try:
-            metadata = session["metadata"]
-            order_id = int(metadata["order_id"])
-            user_id = int(metadata["user_id"])
+            metadata = data_object.get('metadata', {})
+            order_id = metadata.get('order_id')
 
-            print(f"✅ Data received: Order {order_id}, User {user_id}")
+            if not order_id:
+                print("❌ Error: order_id is missing in metadata!")
+                return {"status": "error", "message": "No order_id"}
 
             with SessionLocal() as db:
-                order = order_crud.get_order_by_id(db, order_id=order_id, user_id=user_id)
+                # Додаємо joinedload(Order.items), щоб отримати доступ до товарів у замовленні
+                order = db.query(Order).options(
+                    joinedload(Order.user),
+                    joinedload(Order.items)
+                ).filter(Order.id == int(order_id)).first()
 
                 if order and order.status == OrderStatusEnum.PENDING:
-                    from app.api.crud.payment import create_payment_record
+                    payment_intent = data_object.get('payment_intent')
 
-                    create_payment_record(db, order, external_id=session.id)
+                    # Створюємо основний запис у таблиці payments
+                    # ВАЖЛИВО: переконайся, що create_payment_record повертає об'єкт payment
+                    payment_record = create_payment_record(db, order, external_id=payment_intent)
+
+                    # --- НОВИЙ БЛОК ЗГІДНО ТЗ: PaymentItem ---
+                    # Фіксуємо snapshot ціни для кожного фільму в замовленні
+                    for item in order.items:
+                        new_payment_item = PaymentItem(
+                            payment_id=payment_record.id,
+                            order_item_id=item.id,
+                            price_at_payment=item.price
+                        )
+                        db.add(new_payment_item)
+                    # ----------------------------------------
 
                     order.status = OrderStatusEnum.PAID
+                    db.commit()
+                    print(f"📝 Database updated: Order #{order.id} is now PAID with item breakdown")
+
+                    if order.user and order.user.email:
+                        background_tasks.add_task(
+                            EmailService.send_payment_confirmation,
+                            user_email=order.user.email,
+                            order_id=order.id,
+                            amount=float(order.total_amount)
+                        )
+                else:
+                    status = order.status if order else "NOT FOUND"
+                    print(f"ℹ️ Skipping: Order status is {status}")
+
+        except Exception as e:
+            print(f"🔥 Error during payment success logic: {str(e)}")
+            traceback.print_exc()
+            return {"status": "error", "message": str(e)}
+
+    # 2. PROCESSING REFUND
+    elif event['type'] == 'charge.refunded':
+        payment_intent_id = data_object.get('payment_intent')
+        print(f"🔄 Processing refund for PaymentIntent: {payment_intent_id}")
+
+        if payment_intent_id:
+            with SessionLocal() as db:
+                payment = db.query(Payment).options(
+                    joinedload(Payment.order).joinedload(Order.user)
+                ).filter(Payment.external_payment_id == payment_intent_id).first()
+
+                if payment:
+                    payment.status = PaymentStatus.REFUNDED
+
+                    if payment.order:
+                        payment.order.status = OrderStatusEnum.CANCELED
+                        order_id = payment.order.id
+                        total_amount = float(payment.order.total_amount)
+                        user_email = payment.order.user.email if payment.order.user else None
+
+                        print(f"🚫 Order #{order_id} set to CANCELED. Sending email...")
+
+                        if user_email:
+                            background_tasks.add_task(
+                                EmailService.send_refund_notification,
+                                user_email=user_email,
+                                order_id=order_id,
+                                amount=total_amount
+                            )
 
                     db.commit()
-                    print(f"✅ Order {order_id} and Payment record created successfully")
+                    print("📝 Database updated: Refund processed successfully")
                 else:
-                    print(f"⚠️ Order {order_id} already processed or not found")
-
-        except KeyError as e:
-            print(f"❌ Error: Key {e} not found in Stripe metadata")
-            return {"status": "error", "message": "Metadata missing"}
-        except Exception as e:
-            print(f"❌ Unexpected error during webhook processing: {e}")
-            raise HTTPException(status_code=500, detail="Internal server error")
+                    print(f"⚠️ Payment record {payment_intent_id} not found in DB")
 
     return {"status": "success"}
 
 
-@router.get("/my", response_model=list[PaymentResponse])
-def my_payments(db: Session = Depends(get_db) ,current_user = Depends(get_current_user)):
-    from app.api.crud.payment import get_user_payment_history
-    return get_user_payment_history(db, user_id=current_user.id)
-
-
-@router.get("/admin/all", response_model=list[PaymentResponse])
+@router.get("/admin/all", response_model=List[PaymentResponse])
 def get_all_payments_for_admin(
     status: Optional[str] = None,
     user_id: Optional[int] = None,
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
     if current_user.group.name != "ADMIN":
         raise HTTPException(status_code=403, detail="Not enough permissions")
 
-    from app.api.crud.payment import get_all_payments_admin
-    return get_all_payments_admin(db, status=status, user_id=user_id)
+    return get_all_payments_admin(
+        db,
+        status=status,
+        user_id=user_id,
+        date_from=date_from,
+        date_to=date_to
+    )
+
+
+@router.get("/success")
+def payment_success():
+    return {"status": "success", "message": "Payment successful! Thank you for your purchase."}
+
+@router.get("/cancel")
+def payment_cancel():
+    return {"status": "canceled", "message": "Payment was cancelled."}
+
+
+@router.get("/my", response_model=List[PaymentResponse])
+def get_my_payment_history(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    """
+        User can view the history of all their payments: Date, Amount, Status.
+        """
+    return get_user_payment_history(db, user_id=current_user.id)

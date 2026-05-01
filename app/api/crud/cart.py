@@ -52,11 +52,11 @@ def add_movie_to_cart(db: Session, user_id: int, movie_id: int):
 def get_user_cart(db: Session, user_id: int):
     cart = db.query(Cart).options(joinedload(Cart.items).joinedload(CartItem.movie).joinedload(Movie.genres)).filter(Cart.user_id == user_id).first()
     if not cart:
-        return {"items": [], "total price": 0.0}
+        return {"items": [], "total_price": 0.0}
 
     total_price = sum(item.movie.price for item in cart.items)
 
-    return {"items": cart.items, "total price": total_price}
+    return {"items": cart.items, "total_price": total_price}
 
 
 def remove_from_cart(db: Session, user_id: int, movie_id: int):
