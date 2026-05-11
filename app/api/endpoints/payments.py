@@ -56,7 +56,6 @@ async def stripe_webhook(
     event_data = event.to_dict()
     data_object = event_data.get('data', {}).get('object', {})
 
-    # 1. PROCESSING SUCCESSFUL PAYMENT
     if event['type'] == 'checkout.session.completed':
         session_id = data_object.get('id')
         print(f"🔔 Processing checkout.session.completed: {session_id}")
@@ -70,7 +69,6 @@ async def stripe_webhook(
                 return {"status": "error", "message": "No order_id"}
 
             with SessionLocal() as db:
-                # Додаємо joinedload(Order.items), щоб отримати доступ до товарів у замовленні
                 order = db.query(Order).options(
                     joinedload(Order.user),
                     joinedload(Order.items)
@@ -79,20 +77,15 @@ async def stripe_webhook(
                 if order and order.status == OrderStatusEnum.PENDING:
                     payment_intent = data_object.get('payment_intent')
 
-                    # Створюємо основний запис у таблиці payments
-                    # ВАЖЛИВО: переконайся, що create_payment_record повертає об'єкт payment
                     payment_record = create_payment_record(db, order, external_id=payment_intent)
 
-                    # --- НОВИЙ БЛОК ЗГІДНО ТЗ: PaymentItem ---
-                    # Фіксуємо snapshot ціни для кожного фільму в замовленні
                     for item in order.items:
                         new_payment_item = PaymentItem(
                             payment_id=payment_record.id,
                             order_item_id=item.id,
-                            price_at_payment=item.price
+                            price_at_payment=item.price_at_order
                         )
                         db.add(new_payment_item)
-                    # ----------------------------------------
 
                     order.status = OrderStatusEnum.PAID
                     db.commit()
@@ -114,7 +107,6 @@ async def stripe_webhook(
             traceback.print_exc()
             return {"status": "error", "message": str(e)}
 
-    # 2. PROCESSING REFUND
     elif event['type'] == 'charge.refunded':
         payment_intent_id = data_object.get('payment_intent')
         print(f"🔄 Processing refund for PaymentIntent: {payment_intent_id}")
