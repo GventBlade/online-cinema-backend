@@ -11,12 +11,17 @@ from typing import List, Optional
 
 router = APIRouter(tags=["Movies"])
 
-@router.patch("/{movie_id}", response_model=movies_schema.MovieResponse, status_code=status.HTTP_200_OK)
+
+@router.patch(
+    "/{movie_id}",
+    response_model=movies_schema.MovieResponse,
+    status_code=status.HTTP_200_OK,
+)
 def update_movie(
     movie_id: int,
     movie_in: movies_schema.MovieUpdate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_moderator_or_admin)
+    current_user: models.User = Depends(get_moderator_or_admin),
 ):
     db_movie = movie_crud.get_movie(db, movie_id=movie_id)
     if not db_movie:
@@ -26,8 +31,11 @@ def update_movie(
 
 
 @router.delete("/{movie_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_movie(movie_id: int, db: Session = Depends(get_db),
-                 current_user: models.User = Depends(get_moderator_or_admin)):
+def delete_movie(
+    movie_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_moderator_or_admin),
+):
     db_movie = movie_crud.get_movie(db, movie_id=movie_id)
     if not db_movie:
         raise HTTPException(status_code=404, detail="Movie not found")
@@ -37,7 +45,10 @@ def delete_movie(movie_id: int, db: Session = Depends(get_db),
 
 
 @router.get("/{movie_id}", response_model=movies_schema.MovieResponse)
-def get_movie(movie_id: int, db: Session = Depends(get_db),):
+def get_movie(
+    movie_id: int,
+    db: Session = Depends(get_db),
+):
     db_movie = movie_crud.get_movie(db, movie_id=movie_id)
     if not db_movie:
         raise HTTPException(status_code=404, detail="Movie not found")
@@ -49,20 +60,28 @@ def read_movies(
     db: Session = Depends(get_db),
     skip: int = 0,
     limit: int = 10,
-    search: Optional[str] = Query(None, description="Search by title, description, star, or director"),
+    search: Optional[str] = Query(
+        None, description="Search by title, description, star, or director"
+    ),
     year: Optional[int] = Query(None),
     min_rating: Optional[float] = Query(None, ge=0, le=10),
     max_rating: Optional[float] = Query(None, ge=0, le=10),
     genre_id: Optional[int] = Query(None),
     sort_by: str = Query("year", enum=["price", "year", "rating", "popularity"]),
-    order: str = Query("desc", enum=["asc", "desc"])
+    order: str = Query("desc", enum=["asc", "desc"]),
 ):
     return movie_crud.get_movies(
-        db=db, skip=skip, limit=limit, search=search, year=year,
-        min_rating=min_rating, max_rating=max_rating,
-        genre_id=genre_id, sort_by=sort_by, order=order
+        db=db,
+        skip=skip,
+        limit=limit,
+        search=search,
+        year=year,
+        min_rating=min_rating,
+        max_rating=max_rating,
+        genre_id=genre_id,
+        sort_by=sort_by,
+        order=order,
     )
-
 
 
 @router.get("/genres/stats", response_model=List[movies_schema.GenreWithCountResponse])
@@ -80,13 +99,16 @@ def read_stars(db: Session = Depends(get_db), skip: int = 0, limit: int = 10):
     return movie_crud.get_stars(db, skip=skip, limit=limit)
 
 
-@router.post("/", response_model=movies_schema.MovieResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/", response_model=movies_schema.MovieResponse, status_code=status.HTTP_201_CREATED
+)
 def create_movie(
     movie_in: movies_schema.MovieCreate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_moderator_or_admin)
+    current_user: models.User = Depends(get_moderator_or_admin),
 ):
     return movie_crud.create_movie(db=db, movie_in=movie_in)
+
 
 @router.get("/favorites/", response_model=List[movies_schema.MovieResponse])
 def read_favorite_movies(
@@ -100,7 +122,7 @@ def read_favorite_movies(
     max_rating: Optional[float] = Query(None, ge=0, le=10),
     genre_id: Optional[int] = Query(None),
     sort_by: str = Query("year", enum=["price", "year", "rating", "popularity"]),
-    order: str = Query("desc", enum=["asc", "desc"])
+    order: str = Query("desc", enum=["asc", "desc"]),
 ):
 
     return movie_crud.get_movies(
@@ -114,5 +136,5 @@ def read_favorite_movies(
         genre_id=genre_id,
         sort_by=sort_by,
         order=order,
-        user_id=current_user.id
+        user_id=current_user.id,
     )

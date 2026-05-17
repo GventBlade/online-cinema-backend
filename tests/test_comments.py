@@ -1,4 +1,3 @@
-import pytest
 from fastapi import status
 from app.models import Movie, Certification, User
 
@@ -12,7 +11,9 @@ def test_comments_workflow(client, db_session):
     user.is_active = True
     db_session.commit()
 
-    login_res = client.post("/api/v1/auth/login", data={"username": email, "password": password})
+    login_res = client.post(
+        "/api/v1/auth/login", data={"username": email, "password": password}
+    )
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -28,19 +29,15 @@ def test_comments_workflow(client, db_session):
         votes=100000,
         description="Test movie for comments workflow",
         price=9.99,
-        certification_id=cert.id
+        certification_id=cert.id,
     )
     db_session.add(movie)
     db_session.commit()
     db_session.refresh(movie)
 
-    comment_payload = {
-        "text": "This movie was absolutely brilliant!"
-    }
+    comment_payload = {"text": "This movie was absolutely brilliant!"}
     response_post = client.post(
-        f"/api/v1/movies/{movie.id}/comments",
-        json=comment_payload,
-        headers=headers
+        f"/api/v1/movies/{movie.id}/comments", json=comment_payload, headers=headers
     )
 
     assert response_post.status_code == status.HTTP_201_CREATED
@@ -64,7 +61,9 @@ def test_set_movie_reaction_success(client, db_session):
     user.is_active = True
     db_session.commit()
 
-    login_res = client.post("/api/v1/auth/login", data={"username": email, "password": password})
+    login_res = client.post(
+        "/api/v1/auth/login", data={"username": email, "password": password}
+    )
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -74,15 +73,23 @@ def test_set_movie_reaction_success(client, db_session):
     db_session.refresh(cert)
 
     movie = Movie(
-        name="Reaction Movie", year=2026, time=120, imdb=7.0, votes=500,
-        description="Reaction test", price=49.99, certification_id=cert.id
+        name="Reaction Movie",
+        year=2026,
+        time=120,
+        imdb=7.0,
+        votes=500,
+        description="Reaction test",
+        price=49.99,
+        certification_id=cert.id,
     )
     db_session.add(movie)
     db_session.commit()
     db_session.refresh(movie)
 
     reaction_payload = {"reaction": "LIKE"}
-    response = client.post(f"/api/v1/movies/{movie.id}/react", json=reaction_payload, headers=headers)
+    response = client.post(
+        f"/api/v1/movies/{movie.id}/react", json=reaction_payload, headers=headers
+    )
 
     assert response.status_code == status.HTTP_200_OK
 
@@ -96,7 +103,9 @@ def test_rate_movie_success(client, db_session):
     user.is_active = True
     db_session.commit()
 
-    login_res = client.post("/api/v1/auth/login", data={"username": email, "password": password})
+    login_res = client.post(
+        "/api/v1/auth/login", data={"username": email, "password": password}
+    )
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -106,15 +115,23 @@ def test_rate_movie_success(client, db_session):
     db_session.refresh(cert)
 
     movie = Movie(
-        name="Rating Movie", year=2026, time=110, imdb=8.0, votes=600,
-        description="Rating test", price=59.99, certification_id=cert.id
+        name="Rating Movie",
+        year=2026,
+        time=110,
+        imdb=8.0,
+        votes=600,
+        description="Rating test",
+        price=59.99,
+        certification_id=cert.id,
     )
     db_session.add(movie)
     db_session.commit()
     db_session.refresh(movie)
 
     rating_payload = {"score": 9}
-    response_rate = client.post(f"/api/v1/movies/{movie.id}/rate", json=rating_payload, headers=headers)
+    response_rate = client.post(
+        f"/api/v1/movies/{movie.id}/rate", json=rating_payload, headers=headers
+    )
     assert response_rate.status_code == status.HTTP_200_OK
 
     response_get = client.get(f"/api/v1/movies/{movie.id}/rating")

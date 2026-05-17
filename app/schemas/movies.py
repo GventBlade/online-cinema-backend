@@ -2,14 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional, Annotated, List, TYPE_CHECKING
+from typing import Optional, Annotated, List
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.base import ReactionEnum
-
-if TYPE_CHECKING:
-    from app.schemas.users import UserResponse
 
 
 class NameBase(BaseModel):
@@ -21,32 +18,40 @@ class IdResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class GenreCreate(NameBase): pass
+class GenreCreate(NameBase):
+    pass
 
 
-class GenreResponse(NameBase, IdResponse): pass
+class GenreResponse(NameBase, IdResponse):
+    pass
 
 
 class GenreWithCountResponse(GenreResponse):
     movies_count: int
 
 
-class StarCreate(NameBase): pass
+class StarCreate(NameBase):
+    pass
 
 
-class StarResponse(NameBase, IdResponse): pass
+class StarResponse(NameBase, IdResponse):
+    pass
 
 
-class DirectorCreate(NameBase): pass
+class DirectorCreate(NameBase):
+    pass
 
 
-class DirectorResponse(NameBase, IdResponse): pass
+class DirectorResponse(NameBase, IdResponse):
+    pass
 
 
-class CertificationCreate(NameBase): pass
+class CertificationCreate(NameBase):
+    pass
 
 
-class CertificationResponse(NameBase, IdResponse): pass
+class CertificationResponse(NameBase, IdResponse):
+    pass
 
 
 class MovieBase(BaseModel):
@@ -139,4 +144,3 @@ class NotificationsResponse(IdResponse):
 class MovieAverageRatingResponse(BaseModel):
     movie_id: int
     average: float
-

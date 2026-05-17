@@ -11,8 +11,9 @@ from fastapi import status, HTTPException
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
-def get_current_user(token: str = Depends(oauth2_scheme),
-                     db: Session = Depends(database.get_db)):
+def get_current_user(
+    token: str = Depends(oauth2_scheme), db: Session = Depends(database.get_db)
+):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -28,16 +29,20 @@ def get_current_user(token: str = Depends(oauth2_scheme),
     except JWTError:
         raise credentials_exception
 
-    user = db.query(models.User).options(
-        joinedload(models.User.group),
-        joinedload(models.User.profile)
-    ).filter(models.User.id == int(email)).first()
+    user = (
+        db.query(models.User)
+        .options(joinedload(models.User.group), joinedload(models.User.profile))
+        .filter(models.User.id == int(email))
+        .first()
+    )
 
     if not user:
         raise credentials_exception
 
     if not user.is_active:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is inactive")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="User is inactive"
+        )
 
     return user
 
@@ -53,7 +58,10 @@ def get_admin_user(current_user: models.User = Depends(get_current_user)):
 
 
 def get_moderator_or_admin(current_user: models.User = Depends(get_current_user)):
-    if not  current_user.group or current_user.group.name not in  [UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN]:
+    if not current_user.group or current_user.group.name not in [
+        UserGroupEnum.MODERATOR,
+        UserGroupEnum.ADMIN,
+    ]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have moderator permissions",

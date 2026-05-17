@@ -1,7 +1,16 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from app import models
-from app.models import Genre, Star, Director, Certification, Movie, OrderItem, Order, OrderStatusEnum
+from app.models import (
+    Genre,
+    Star,
+    Director,
+    Certification,
+    Movie,
+    OrderItem,
+    Order,
+    OrderStatusEnum,
+)
 from app.schemas import movies as movies_schema
 
 from sqlalchemy import or_, func
@@ -9,9 +18,7 @@ from typing import Optional
 
 
 def create_genre(db: Session, genre_in: movies_schema.GenreCreate) -> Genre:
-    db_genre = Genre(
-        name=genre_in.name
-    )
+    db_genre = Genre(name=genre_in.name)
     db.add(db_genre)
     db.commit()
     db.refresh(db_genre)
@@ -19,9 +26,7 @@ def create_genre(db: Session, genre_in: movies_schema.GenreCreate) -> Genre:
 
 
 def create_star(db: Session, star_in: movies_schema.StarCreate) -> Star:
-    db_star = Star(
-        name=star_in.name
-    )
+    db_star = Star(name=star_in.name)
     db.add(db_star)
     db.commit()
     db.refresh(db_star)
@@ -29,19 +34,17 @@ def create_star(db: Session, star_in: movies_schema.StarCreate) -> Star:
 
 
 def create_director(db: Session, director_in: movies_schema.DirectorCreate) -> Director:
-    db_director = Director(
-        name=director_in.name
-    )
+    db_director = Director(name=director_in.name)
     db.add(db_director)
     db.commit()
     db.refresh(db_director)
     return db_director
 
 
-def create_certification(db: Session, cert_in: movies_schema.CertificationCreate) -> Certification:
-    db_certification = Certification(
-        name=cert_in.name
-    )
+def create_certification(
+    db: Session, cert_in: movies_schema.CertificationCreate
+) -> Certification:
+    db_certification = Certification(name=cert_in.name)
     db.add(db_certification)
     db.commit()
     db.refresh(db_certification)
@@ -49,16 +52,21 @@ def create_certification(db: Session, cert_in: movies_schema.CertificationCreate
 
 
 def create_movie(db: Session, movie_in: movies_schema.MovieCreate) -> Movie:
-    existing_movie = db.query(Movie).filter(
-        Movie.name == movie_in.name,
-        Movie.year == movie_in.year,
-        Movie.time == movie_in.time
-    ).first()
+    existing_movie = (
+        db.query(Movie)
+        .filter(
+            Movie.name == movie_in.name,
+            Movie.year == movie_in.year,
+            Movie.time == movie_in.time,
+        )
+        .first()
+    )
 
     if existing_movie:
         raise HTTPException(
             status_code=400,
-            detail=f"Movie with name '{movie_in.name}', year {movie_in.year} and duration {movie_in.time} already exists."
+            detail=f"Movie with name '{movie_in.name}',"
+                   f" year {movie_in.year} and duration {movie_in.time} already exists.",
         )
     genres = db.query(Genre).filter(Genre.id.in_(movie_in.genre_ids)).all()
     stars = db.query(Star).filter(Star.id.in_(movie_in.star_ids)).all()
@@ -75,7 +83,7 @@ def create_movie(db: Session, movie_in: movies_schema.MovieCreate) -> Movie:
         **movie_in.model_dump(exclude={"genre_ids", "star_ids", "director_ids"}),
         genres=genres,
         stars=stars,
-        directors=directors
+        directors=directors,
     )
     db.add(db_movie)
     db.commit()
@@ -98,15 +106,13 @@ def get_movies(
     genre_id: Optional[int] = None,
     sort_by: str = "year",
     order: str = "desc",
-    user_id: Optional[int] = None
+    user_id: Optional[int] = None,
 ):
     query = db.query(models.Movie)
-
 
     if user_id:
 
         query = query.join(models.Favorite).filter(models.Favorite.user_id == user_id)
-
 
     if search:
         query = query.filter(
@@ -115,10 +121,9 @@ def get_movies(
                 models.Movie.description.ilike(f"%{search}%"),
                 models.Movie.stars.any(models.Star.name.ilike(f"%{search}%")),
                 models.Movie.directors.any(models.Director.name.ilike(f"%{search}%")),
-                models.Movie.genres.any(models.Genre.name.ilike(f"%{search}%"))
+                models.Movie.genres.any(models.Genre.name.ilike(f"%{search}%")),
             )
         )
-
 
     if year:
         query = query.filter(models.Movie.year == year)
@@ -132,12 +137,11 @@ def get_movies(
     if genre_id:
         query = query.filter(models.Movie.genres.any(models.Genre.id == genre_id))
 
-
     sort_options = {
         "price": models.Movie.price,
         "year": models.Movie.year,
         "rating": models.Movie.imdb,
-        "popularity": models.Movie.votes
+        "popularity": models.Movie.votes,
     }
 
     sort_attr = sort_options.get(sort_by, models.Movie.year)
@@ -150,10 +154,14 @@ def get_movies(
     return query.offset(skip).limit(limit).all()
 
 
-def update_movie(db: Session, db_movie: Movie, movie_in: movies_schema.MovieUpdate)-> Movie:
+def update_movie(
+    db: Session, db_movie: Movie, movie_in: movies_schema.MovieUpdate
+) -> Movie:
     update_data = movie_in.model_dump(exclude_unset=True)
     if "genre_ids" in update_data:
-        new_genres = db.query(Genre).filter(Genre.id.in_(update_data["genre_ids"])).all()
+        new_genres = (
+            db.query(Genre).filter(Genre.id.in_(update_data["genre_ids"])).all()
+        )
         if len(new_genres) != len(update_data["genre_ids"]):
             raise HTTPException(status_code=400, detail="One or more genres not found")
         db_movie.genres = new_genres
@@ -167,9 +175,15 @@ def update_movie(db: Session, db_movie: Movie, movie_in: movies_schema.MovieUpda
         del update_data["star_ids"]
 
     if "director_ids" in update_data:
-        new_directors = db.query(Director).filter(Director.id.in_(update_data["director_ids"])).all()
+        new_directors = (
+            db.query(Director)
+            .filter(Director.id.in_(update_data["director_ids"]))
+            .all()
+        )
         if len(new_directors) != len(update_data["director_ids"]):
-            raise HTTPException(status_code=400, detail="One or more directors not found")
+            raise HTTPException(
+                status_code=400, detail="One or more directors not found"
+            )
         db_movie.directors = new_directors
         del update_data["director_ids"]
 
@@ -183,17 +197,25 @@ def update_movie(db: Session, db_movie: Movie, movie_in: movies_schema.MovieUpda
 
 
 def delete_movie(db: Session, db_movie: Movie):
-    purchased = db.query(OrderItem).join(Order).filter(
-        OrderItem.movie_id == db_movie.id,
-        Order.status == OrderStatusEnum.PAID,
-    ).first()
+    purchased = (
+        db.query(OrderItem)
+        .join(Order)
+        .filter(
+            OrderItem.movie_id == db_movie.id,
+            Order.status == OrderStatusEnum.PAID,
+        )
+        .first()
+    )
     if purchased:
-        raise HTTPException(status_code=400,
-                            detail="Cannot delete movie: it has already been purchased by users.")
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete movie: it has already been purchased by users.",
+        )
 
     db.delete(db_movie)
     db.commit()
     return db_movie
+
 
 def get_genres(db: Session, skip: int = 0, limit: int = 10):
     return db.query(Genre).offset(skip).limit(limit).all()
@@ -208,8 +230,9 @@ def get_stars(db: Session, skip: int = 0, limit: int = 10):
 
 
 def get_genres_with_count(db: Session):
-    return db.query(
-        models.Genre,
-        func.count(models.Movie.id).label("movies_count")
-    ).outerjoin(models.Movie.genres) \
-        .group_by(models.Genre.id).all()
+    return (
+        db.query(models.Genre, func.count(models.Movie.id).label("movies_count"))
+        .outerjoin(models.Movie.genres)
+        .group_by(models.Genre.id)
+        .all()
+    )

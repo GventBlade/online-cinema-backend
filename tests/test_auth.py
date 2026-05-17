@@ -1,12 +1,9 @@
-import pytest
 from fastapi import status
 from app.models import User
 
+
 def test_register_user_success(client):
-    payload = {
-        "email": "test_user_2026@example.com",
-        "password": "Strongpassword1231!"
-    }
+    payload = {"email": "test_user_2026@example.com", "password": "Strongpassword1231!"}
 
     response = client.post("/api/v1/auth/register", json=payload)
     print("\nМій JSON відповіді від FastAPI:", response.json())
@@ -18,10 +15,7 @@ def test_register_user_success(client):
 
 
 def test_register_user_already_exists(client):
-    payload = {
-        "email": "duplicate@example.com",
-        "password": "Password125!"
-    }
+    payload = {"email": "duplicate@example.com", "password": "Password125!"}
 
     client.post("/api/v1/auth/register", json=payload)
 
@@ -35,10 +29,7 @@ def test_login_user_success(client, db_session):
     email = "login_test@example.com"
     password = "SecurePassword123!"
 
-    register_payload = {
-        "email": email,
-        "password": password
-    }
+    register_payload = {"email": email, "password": password}
     client.post("/api/v1/auth/register", json=register_payload)
 
     user = db_session.query(User).filter(User.email == email).first()
@@ -46,10 +37,7 @@ def test_login_user_success(client, db_session):
         user.is_active = True
         db_session.commit()
 
-    login_payload = {
-        "username": email,
-        "password": password
-    }
+    login_payload = {"username": email, "password": password}
     response = client.post("/api/v1/auth/login", data=login_payload)
 
     assert response.status_code == status.HTTP_200_OK
@@ -67,9 +55,7 @@ def test_get_protected_route_without_token(client):
 
 
 def test_get_protected_route_with_invalid_token(client):
-    headers = {
-        "Authorization": "Bearer totalmente_fake_token_123"
-    }
+    headers = {"Authorization": "Bearer totalmente_fake_token_123"}
 
     response = client.get("/api/v1/payments/my", headers=headers)
 

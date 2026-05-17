@@ -8,12 +8,17 @@ from app.database import get_db
 
 router = APIRouter()
 
+
 @router.get("/", response_model=CartResponse, status_code=status.HTTP_200_OK)
-def read_user_cart(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def read_user_cart(
+    db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)
+):
     return cart_crud.get_user_cart(db, user_id=current_user.id)
 
 
-@router.post("/add/{movie_id}", response_model=CartResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/add/{movie_id}", response_model=CartResponse, status_code=status.HTTP_201_CREATED
+)
 def add_to_cart(
     movie_id: int,
     db: Session = Depends(get_db),

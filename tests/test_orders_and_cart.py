@@ -1,4 +1,3 @@
-import pytest
 from fastapi import status
 from app.models import Movie, Certification, User
 
@@ -12,7 +11,9 @@ def test_cart_and_order_full_workflow(client, db_session):
     user.is_active = True
     db_session.commit()
 
-    login_res = client.post("/api/v1/auth/login", data={"username": email, "password": password})
+    login_res = client.post(
+        "/api/v1/auth/login", data={"username": email, "password": password}
+    )
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -22,8 +23,14 @@ def test_cart_and_order_full_workflow(client, db_session):
     db_session.refresh(cert)
 
     movie = Movie(
-        name="Inception for Sale", year=2010, time=148, imdb=8.8, votes=50000,
-        description="Buy to watch", price=150.00, certification_id=cert.id
+        name="Inception for Sale",
+        year=2010,
+        time=148,
+        imdb=8.8,
+        votes=50000,
+        description="Buy to watch",
+        price=150.00,
+        certification_id=cert.id,
     )
     db_session.add(movie)
     db_session.commit()
@@ -61,7 +68,9 @@ def test_remove_from_cart_success(client, db_session):
     user.is_active = True
     db_session.commit()
 
-    login_res = client.post("/api/v1/auth/login", data={"username": email, "password": password})
+    login_res = client.post(
+        "/api/v1/auth/login", data={"username": email, "password": password}
+    )
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -71,8 +80,14 @@ def test_remove_from_cart_success(client, db_session):
     db_session.refresh(cert)
 
     movie = Movie(
-        name="Disposable Movie", year=2020, time=90, imdb=5.0, votes=10,
-        description="To be removed", price=10.00, certification_id=cert.id
+        name="Disposable Movie",
+        year=2020,
+        time=90,
+        imdb=5.0,
+        votes=10,
+        description="To be removed",
+        price=10.00,
+        certification_id=cert.id,
     )
     db_session.add(movie)
     db_session.commit()

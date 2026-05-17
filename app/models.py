@@ -1,8 +1,21 @@
 import enum
 import uuid
 
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Enum, Text, Table, Float, Numeric, \
-    UniqueConstraint, DECIMAL
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Boolean,
+    ForeignKey,
+    DateTime,
+    Enum,
+    Text,
+    Table,
+    Float,
+    Numeric,
+    UniqueConstraint,
+    DECIMAL,
+)
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.sql import func
 from app.database import Base
@@ -34,23 +47,52 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
     group_id = Column(Integer, ForeignKey("user_groups.id"))
 
     group = relationship("UserGroup", back_populates="users")
-    profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
-    activation_token = relationship("ActivationToken", back_populates="user", uselist=False,
-                                    cascade="all, delete-orphan")
-    refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
-    password_reset_token = relationship("PasswordResetToken", back_populates="user", uselist=False,
-                                        cascade="all, delete-orphan")
-    favorites = relationship("Favorite", back_populates="user", cascade="all, delete-orphan")
-    comments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")
-    ratings = relationship("Rating", back_populates="user", cascade="all, delete-orphan")
-    reactions = relationship("MovieReaction", back_populates="user", cascade="all, delete-orphan")
-    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
-    cart = relationship("Cart", back_populates="user", uselist=False ,cascade="all, delete-orphan")
+    profile = relationship(
+        "UserProfile",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    activation_token = relationship(
+        "ActivationToken",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    refresh_tokens = relationship(
+        "RefreshToken", back_populates="user", cascade="all, delete-orphan"
+    )
+    password_reset_token = relationship(
+        "PasswordResetToken",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    favorites = relationship(
+        "Favorite", back_populates="user", cascade="all, delete-orphan"
+    )
+    comments = relationship(
+        "Comment", back_populates="user", cascade="all, delete-orphan"
+    )
+    ratings = relationship(
+        "Rating", back_populates="user", cascade="all, delete-orphan"
+    )
+    reactions = relationship(
+        "MovieReaction", back_populates="user", cascade="all, delete-orphan"
+    )
+    notifications = relationship(
+        "Notification", back_populates="user", cascade="all, delete-orphan"
+    )
+    cart = relationship(
+        "Cart", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
     orders = relationship("Order", back_populates="user", cascade="all, delete-orphan")
     payments = relationship("Payment", back_populates="user")
 
@@ -102,19 +144,53 @@ class PasswordResetToken(Base):
     user = relationship("User", back_populates="password_reset_token")
 
 
-movie_genres = Table("movie_genres", Base.metadata,
-                     Column("movie_id", Integer, ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True),
-                     Column("genre_id", Integer, ForeignKey("genres.id", ondelete="CASCADE"), primary_key=True),
-                     )
+movie_genres = Table(
+    "movie_genres",
+    Base.metadata,
+    Column(
+        "movie_id",
+        Integer,
+        ForeignKey("movies.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "genre_id",
+        Integer,
+        ForeignKey("genres.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+)
 
-movie_directors = Table("movie_directors", Base.metadata,
-                        Column("movie_id", Integer, ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True),
-                        Column("director_id", Integer, ForeignKey("directors.id", ondelete="CASCADE"),
-                               primary_key=True), )
+movie_directors = Table(
+    "movie_directors",
+    Base.metadata,
+    Column(
+        "movie_id",
+        Integer,
+        ForeignKey("movies.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "director_id",
+        Integer,
+        ForeignKey("directors.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+)
 
-movie_stars = Table("movie_stars", Base.metadata,
-                    Column("movie_id", Integer, ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True),
-                    Column("star_id", Integer, ForeignKey("stars.id", ondelete="CASCADE"), primary_key=True), )
+movie_stars = Table(
+    "movie_stars",
+    Base.metadata,
+    Column(
+        "movie_id",
+        Integer,
+        ForeignKey("movies.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "star_id", Integer, ForeignKey("stars.id", ondelete="CASCADE"), primary_key=True
+    ),
+)
 
 
 class Genre(Base):
@@ -135,7 +211,9 @@ class Director(Base):
     __tablename__ = "directors"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False, unique=True)
-    movies = relationship("Movie", secondary=movie_directors, back_populates="directors")
+    movies = relationship(
+        "Movie", secondary=movie_directors, back_populates="directors"
+    )
 
 
 class Certification(Base):
@@ -145,10 +223,13 @@ class Certification(Base):
 
     movies = relationship("Movie", back_populates="certification")
 
+
 class Movie(Base):
     __tablename__ = "movies"
     id = Column(Integer, primary_key=True, index=True)
-    uuid = Column(String, default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
+    uuid = Column(
+        String, default=lambda: str(uuid.uuid4()), unique=True, nullable=False
+    )
     name = Column(String, nullable=False)
     year = Column(Integer, nullable=False)
     time = Column(Integer, nullable=False)
@@ -159,17 +240,31 @@ class Movie(Base):
     description = Column(Text, nullable=False)
     price = Column(Numeric(10, 2), nullable=False)
 
-    certification_id = Column(Integer, ForeignKey("certifications.id", ondelete="CASCADE"), nullable=False)
+    certification_id = Column(
+        Integer, ForeignKey("certifications.id", ondelete="CASCADE"), nullable=False
+    )
 
     certification = relationship("Certification", back_populates="movies")
     genres = relationship("Genre", secondary=movie_genres, back_populates="movies")
     stars = relationship("Star", secondary=movie_stars, back_populates="movies")
-    directors = relationship("Director", secondary=movie_directors, back_populates="movies")
-    favorites = relationship("Favorite", back_populates="movie", cascade="all, delete-orphan")
-    comments = relationship("Comment", back_populates="movie", cascade="all, delete-orphan")
-    ratings = relationship("Rating", back_populates="movie", cascade="all, delete-orphan")
-    reactions = relationship("MovieReaction", back_populates="movie", cascade="all, delete-orphan")
-    cart_items = relationship("CartItem", back_populates="movie", cascade="all, delete-orphan")
+    directors = relationship(
+        "Director", secondary=movie_directors, back_populates="movies"
+    )
+    favorites = relationship(
+        "Favorite", back_populates="movie", cascade="all, delete-orphan"
+    )
+    comments = relationship(
+        "Comment", back_populates="movie", cascade="all, delete-orphan"
+    )
+    ratings = relationship(
+        "Rating", back_populates="movie", cascade="all, delete-orphan"
+    )
+    reactions = relationship(
+        "MovieReaction", back_populates="movie", cascade="all, delete-orphan"
+    )
+    cart_items = relationship(
+        "CartItem", back_populates="movie", cascade="all, delete-orphan"
+    )
     order_items = relationship("OrderItem", back_populates="movie")
 
     __table_args__ = (
@@ -180,14 +275,20 @@ class Movie(Base):
 class Favorite(Base):
     __tablename__ = "favorites"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    movie_id = Column(Integer, ForeignKey("movies.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    movie_id = Column(
+        Integer, ForeignKey("movies.id", ondelete="CASCADE"), nullable=False
+    )
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="favorites")
     movie = relationship("Movie", back_populates="favorites")
 
-    __table_args__ = (UniqueConstraint("user_id", "movie_id", name="_user_movie_favorite_uc"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "movie_id", name="_user_movie_favorite_uc"),
+    )
 
 
 class ReactionEnum(str, enum.Enum):
@@ -198,14 +299,20 @@ class ReactionEnum(str, enum.Enum):
 class MovieReaction(Base):
     __tablename__ = "movie_reactions"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    movie_id = Column(Integer, ForeignKey("movies.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    movie_id = Column(
+        Integer, ForeignKey("movies.id", ondelete="CASCADE"), nullable=False
+    )
     reaction = Column(Enum(ReactionEnum), nullable=False)
 
     user = relationship("User", back_populates="reactions")
     movie = relationship("Movie", back_populates="reactions")
 
-    __table_args__ = (UniqueConstraint("user_id", "movie_id", name="_user_movie_reaction_uc"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "movie_id", name="_user_movie_reaction_uc"),
+    )
 
 
 class Comment(Base):
@@ -214,32 +321,50 @@ class Comment(Base):
     text = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    movie_id = Column(Integer, ForeignKey("movies.id", ondelete="CASCADE"), nullable=False)
-    parent_id = Column(Integer, ForeignKey("comments.id", ondelete="CASCADE"), nullable=True)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    movie_id = Column(
+        Integer, ForeignKey("movies.id", ondelete="CASCADE"), nullable=False
+    )
+    parent_id = Column(
+        Integer, ForeignKey("comments.id", ondelete="CASCADE"), nullable=True
+    )
 
     user = relationship("User", back_populates="comments")
     movie = relationship("Movie", back_populates="comments")
-    replies = relationship("Comment", backref=backref("parent", remote_side=[id]), cascade="all, delete-orphan")
+    replies = relationship(
+        "Comment",
+        backref=backref("parent", remote_side=[id]),
+        cascade="all, delete-orphan",
+    )
 
 
 class Rating(Base):
     __tablename__ = "ratings"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    movie_id = Column(Integer, ForeignKey("movies.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    movie_id = Column(
+        Integer, ForeignKey("movies.id", ondelete="CASCADE"), nullable=False
+    )
     score = Column(Integer, nullable=False)
 
     user = relationship("User", back_populates="ratings")
     movie = relationship("Movie", back_populates="ratings")
 
-    __table_args__ = (UniqueConstraint("user_id", "movie_id", name="_user_movie_rating_uc"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "movie_id", name="_user_movie_rating_uc"),
+    )
 
 
 class Notification(Base):
     __tablename__ = "notifications"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
     message = Column(String, nullable=False)
     is_read = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -250,15 +375,24 @@ class Notification(Base):
 class Cart(Base):
     __tablename__ = "carts"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True
+    )
     user = relationship("User", back_populates="cart")
-    items = relationship("CartItem", back_populates="cart", cascade="all, delete-orphan")
+    items = relationship(
+        "CartItem", back_populates="cart", cascade="all, delete-orphan"
+    )
+
 
 class CartItem(Base):
     __tablename__ = "cart_items"
     id = Column(Integer, primary_key=True, index=True)
-    cart_id = Column(Integer, ForeignKey("carts.id", ondelete="CASCADE"), nullable=False)
-    movie_id = Column(Integer, ForeignKey("movies.id", ondelete="CASCADE"), nullable=False)
+    cart_id = Column(
+        Integer, ForeignKey("carts.id", ondelete="CASCADE"), nullable=False
+    )
+    movie_id = Column(
+        Integer, ForeignKey("movies.id", ondelete="CASCADE"), nullable=False
+    )
     added_at = Column(DateTime(timezone=True), server_default=func.now())
 
     cart = relationship("Cart", back_populates="items")
@@ -276,22 +410,30 @@ class OrderStatusEnum(str, enum.Enum):
 class Order(Base):
     __tablename__ = "orders"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    status = Column(Enum(OrderStatusEnum), nullable=False, default=OrderStatusEnum.PENDING)
-    total_amount = Column(DECIMAL(10,2), nullable=False)
+    status = Column(
+        Enum(OrderStatusEnum), nullable=False, default=OrderStatusEnum.PENDING
+    )
+    total_amount = Column(DECIMAL(10, 2), nullable=False)
 
     user = relationship("User", back_populates="orders")
-    items  = relationship("OrderItem", back_populates="order")
+    items = relationship("OrderItem", back_populates="order")
     payments = relationship("Payment", back_populates="order")
 
 
 class OrderItem(Base):
     __tablename__ = "order_items"
     id = Column(Integer, primary_key=True, index=True)
-    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False)
-    movie_id = Column(Integer, ForeignKey("movies.id", ondelete="CASCADE"), nullable=False)
-    price_at_order = Column(DECIMAL(10,2), nullable=False)
+    order_id = Column(
+        Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False
+    )
+    movie_id = Column(
+        Integer, ForeignKey("movies.id", ondelete="CASCADE"), nullable=False
+    )
+    price_at_order = Column(DECIMAL(10, 2), nullable=False)
 
     order = relationship("Order", back_populates="items")
     movie = relationship("Movie", back_populates="order_items")
@@ -307,27 +449,39 @@ class PaymentStatus(str, enum.Enum):
 class Payment(Base):
     __tablename__ = "payments"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    order_id = Column(
+        Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False
+    )
 
-    amount = Column(DECIMAL(10,2), nullable=False)
-    status = Column(Enum(PaymentStatus), default=PaymentStatus.SUCCESSFUL, nullable=False)
+    amount = Column(DECIMAL(10, 2), nullable=False)
+    status = Column(
+        Enum(PaymentStatus), default=PaymentStatus.SUCCESSFUL, nullable=False
+    )
     external_payment_id = Column(String, nullable=True, index=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="payments")
     order = relationship("Order", back_populates="payments")
-    items = relationship("PaymentItem", back_populates="payment", cascade="all, delete-orphan")
+    items = relationship(
+        "PaymentItem", back_populates="payment", cascade="all, delete-orphan"
+    )
 
 
-class  PaymentItem(Base):
+class PaymentItem(Base):
     __tablename__ = "payment_items"
     id = Column(Integer, primary_key=True, index=True)
-    payment_id = Column(Integer, ForeignKey("payments.id", ondelete="CASCADE"), nullable=False)
-    order_item_id = Column(Integer, ForeignKey("order_items.id", ondelete="CASCADE"), nullable=False)
+    payment_id = Column(
+        Integer, ForeignKey("payments.id", ondelete="CASCADE"), nullable=False
+    )
+    order_item_id = Column(
+        Integer, ForeignKey("order_items.id", ondelete="CASCADE"), nullable=False
+    )
 
-    price_at_payment = Column(DECIMAL(10,2), nullable=False)
+    price_at_payment = Column(DECIMAL(10, 2), nullable=False)
 
     payment = relationship("Payment", back_populates="items")
     order_item = relationship("OrderItem", back_populates="payment_items")

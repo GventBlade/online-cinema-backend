@@ -1,6 +1,6 @@
-import pytest
 from fastapi import status
-from app.models import Movie, Certification,User, UserGroup, UserGroupEnum, Favorite
+from app.models import Movie, Certification, User, UserGroup, UserGroupEnum
+
 
 def test_get_movies_list_empty(client):
     response = client.get("/api/v1/movies")
@@ -23,7 +23,7 @@ def test_get_movie_by_id_success(client, db_session):
         votes=2400000,
         description="A thief who steals corporate secrets through the use of dream-sharing technology.",
         price=149.99,
-        certification_id=cert.id
+        certification_id=cert.id,
     )
     db_session.add(test_movie)
     db_session.commit()
@@ -53,16 +53,23 @@ def test_create_movie_as_anonymous_or_user_fails(client, db_session):
         "votes": 1900000,
         "description": "A team of explorers travel through a wormhole in space.",
         "price": 199.99,
-        "certification_id": 1
+        "certification_id": 1,
     }
 
     response = client.post("/api/v1/movies", json=movie_payload)
 
-    assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
+    assert response.status_code in [
+        status.HTTP_401_UNAUTHORIZED,
+        status.HTTP_403_FORBIDDEN,
+    ]
 
 
 def test_create_movie_as_admin_success(client, db_session):
-    admin_group = db_session.query(UserGroup).filter(UserGroup.name == UserGroupEnum.ADMIN).first()
+    admin_group = (
+        db_session.query(UserGroup)
+        .filter(UserGroup.name == UserGroupEnum.ADMIN)
+        .first()
+    )
     if not admin_group:
         admin_group = UserGroup(name=UserGroupEnum.ADMIN)
         db_session.add(admin_group)
@@ -72,7 +79,7 @@ def test_create_movie_as_admin_success(client, db_session):
         email="admin_cinema@example.com",
         hashed_password="Fakehashpassword1231",
         is_active=True,
-        group_id=admin_group.id
+        group_id=admin_group.id,
     )
     db_session.add(admin_user)
     db_session.commit()
@@ -90,7 +97,7 @@ def test_create_movie_as_admin_success(client, db_session):
         "votes": 1900000,
         "description": "A team of explorers travel through a wormhole in space.",
         "price": 199.99,
-        "certification_id": cert.id
+        "certification_id": cert.id,
     }
 
     response = client.post("/api/v1/movies", json=movie_payload)
@@ -108,7 +115,9 @@ def test_add_to_favorites_success(client, db_session):
     user.is_active = True
     db_session.commit()
 
-    login_res = client.post("/api/v1/auth/login", data={"username": email, "password": password})
+    login_res = client.post(
+        "/api/v1/auth/login", data={"username": email, "password": password}
+    )
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -124,15 +133,16 @@ def test_add_to_favorites_success(client, db_session):
         votes=2000000,
         description="A computer hacker learns from mysterious rebels about the true nature of his reality.",
         price=99.99,
-        certification_id=cert.id
+        certification_id=cert.id,
     )
     db_session.add(movie)
     db_session.commit()
     db_session.refresh(movie)
 
-
     fav_payload = {"movie_id": movie.id}
-    response = client.post(f"/api/v1/movies/{movie.id}/favorite", json=fav_payload, headers=headers)
+    response = client.post(
+        f"/api/v1/movies/{movie.id}/favorite", json=fav_payload, headers=headers
+    )
 
     print("\nResponse added to favorite:", response.status_code, response.json())
 
@@ -148,7 +158,9 @@ def test_add_to_favorites_toggle_off_success(client, db_session):
     user.is_active = True
     db_session.commit()
 
-    login_res = client.post("/api/v1/auth/login", data={"username": email, "password": password})
+    login_res = client.post(
+        "/api/v1/auth/login", data={"username": email, "password": password}
+    )
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -165,7 +177,7 @@ def test_add_to_favorites_toggle_off_success(client, db_session):
         votes=1300000,
         description="A paraplegic Marine dispatched to the moon Pandora on a unique mission.",
         price=119.99,
-        certification_id=cert.id
+        certification_id=cert.id,
     )
     db_session.add(movie)
     db_session.commit()

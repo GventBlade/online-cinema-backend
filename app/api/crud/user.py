@@ -8,11 +8,13 @@ import secrets
 from app.schemas.base import UserGroupEnum
 
 
-def get_user_by_email(db: Session ,email: str):
+def get_user_by_email(db: Session, email: str):
     return db.query(models.User).filter(models.User.email == email).first()
 
 
-def create_user(db: Session ,user_in: users_schema.UserCreate)-> tuple[models.User, str]:
+def create_user(
+    db: Session, user_in: users_schema.UserCreate
+) -> tuple[models.User, str]:
     hashed_password = security.get_password_hash(user_in.password)
     db_user = models.User(
         email=user_in.email,
@@ -29,7 +31,7 @@ def create_user(db: Session ,user_in: users_schema.UserCreate)-> tuple[models.Us
     db_token = models.ActivationToken(
         token=token_value,
         expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
-        users_id = db_user.id
+        users_id=db_user.id,
     )
     db.add(db_token)
 
@@ -39,7 +41,11 @@ def create_user(db: Session ,user_in: users_schema.UserCreate)-> tuple[models.Us
 
 
 def activate_user_account(db: Session, token: str):
-    db_token = db.query(models.ActivationToken).filter(models.ActivationToken.token == token).first()
+    db_token = (
+        db.query(models.ActivationToken)
+        .filter(models.ActivationToken.token == token)
+        .first()
+    )
     if not db_token:
         raise HTTPException(status_code=404, detail="Invalid token")
 
@@ -52,7 +58,11 @@ def activate_user_account(db: Session, token: str):
     user = db_token.user
     user.is_active = True
 
-    user_group = db.query(models.UserGroup).filter(models.UserGroup.name == UserGroupEnum.USER).first()
+    user_group = (
+        db.query(models.UserGroup)
+        .filter(models.UserGroup.name == UserGroupEnum.USER)
+        .first()
+    )
     if user_group:
         user.group_id = user_group.id
 
@@ -62,7 +72,10 @@ def activate_user_account(db: Session, token: str):
 
     return user
 
-def create_refresh_token_entry(db: Session, user_id: int, token: str, expires_at: datetime):
+
+def create_refresh_token_entry(
+    db: Session, user_id: int, token: str, expires_at: datetime
+):
     db_refresh_token = models.RefreshToken(
         token=token,
         users_id=user_id,
@@ -74,8 +87,11 @@ def create_refresh_token_entry(db: Session, user_id: int, token: str, expires_at
 
     return db_refresh_token
 
+
 def get_refresh_token(db: Session, token: str):
-    return db.query(models.RefreshToken).filter(models.RefreshToken.token == token).first()
+    return (
+        db.query(models.RefreshToken).filter(models.RefreshToken.token == token).first()
+    )
 
 
 def delete_refresh_token(db: Session, token: str):
@@ -92,7 +108,7 @@ def create_password_reset_token(db: Session, user_id: int):
     db_reset_token = models.PasswordResetToken(
         password_reset_token=token_value,
         expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
-        users_id = user_id,
+        users_id=user_id,
     )
     db.add(db_reset_token)
     db.commit()
@@ -102,7 +118,11 @@ def create_password_reset_token(db: Session, user_id: int):
 
 
 def reset_password_with_token(db: Session, token_value: str, new_password: str):
-    db_token = db.query(models.PasswordResetToken).filter(models.PasswordResetToken.password_reset_token == token_value).first()
+    db_token = (
+        db.query(models.PasswordResetToken)
+        .filter(models.PasswordResetToken.password_reset_token == token_value)
+        .first()
+    )
     if not db_token:
         return None
 
@@ -120,8 +140,13 @@ def reset_password_with_token(db: Session, token_value: str, new_password: str):
 
     return user
 
+
 def delete_reset_token(db: Session, token: str):
-    db_token = db.query(models.PasswordResetToken).filter(models.PasswordResetToken.password_reset_token == token).first()
+    db_token = (
+        db.query(models.PasswordResetToken)
+        .filter(models.PasswordResetToken.password_reset_token == token)
+        .first()
+    )
     if db_token:
         db.delete(db_token)
         db.commit()
@@ -142,13 +167,15 @@ def refresh_activation_token(db: Session, email: str):
     if not user or user.is_active is True:
         return None
 
-    db.query(models.ActivationToken).filter(models.ActivationToken.users_id == user.id).delete()
+    db.query(models.ActivationToken).filter(
+        models.ActivationToken.users_id == user.id
+    ).delete()
 
     token_value = secrets.token_urlsafe(32)
     db_token = models.ActivationToken(
         token=token_value,
         expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
-        users_id = user.id
+        users_id=user.id,
     )
 
     db.add(db_token)

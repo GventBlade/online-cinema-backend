@@ -19,7 +19,7 @@ class MovieCartInfo(BaseModel):
 class CartItemResponse(BaseModel):
     id: int
     added_at: datetime
-    movie : MovieCartInfo
+    movie: MovieCartInfo
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -37,8 +37,8 @@ class CartResponse(BaseModel):
 
 class OrderItemResponse(BaseModel):
     id: int
-    movie : MovieCartInfo
-    price_at_order : Decimal
+    movie: MovieCartInfo
+    price_at_order: Decimal
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -56,4 +56,3 @@ class OrderResponse(BaseModel):
 class PurchaseMovieResponse(BaseModel):
     movie: MovieCartInfo
     purchase_date: datetime
-

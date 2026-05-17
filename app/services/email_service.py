@@ -3,6 +3,7 @@ from email.message import EmailMessage
 from app.core.config import settings
 from app.core.celery_app import celery_app  # Імпортуємо наш Celery
 
+
 class EmailService:
     @staticmethod
     @celery_app.task(name="send_payment_email_task")  # Робимо функцію фоновим завданням
@@ -11,7 +12,9 @@ class EmailService:
         Фонова задача для відправки підтвердження оплати.
         """
         msg = EmailMessage()
-        msg.set_content(f"Thank you! Your payment for order #{order_id} in the amount of ${amount} was successful.")
+        msg.set_content(
+            f"Thank you! Your payment for order #{order_id} in the amount of ${amount} was successful."
+        )
         msg["Subject"] = "Payment Confirmation - Online Cinema"
         msg["From"] = settings.SMTP_USER
         msg["To"] = user_email
@@ -32,7 +35,9 @@ class EmailService:
         Фонова задача для відправки сповіщення про повернення коштів.
         """
         msg = EmailMessage()
-        msg.set_content(f"Your refund for order #{order_id} in the amount of ${amount} has been processed.")
+        msg.set_content(
+            f"Your refund for order #{order_id} in the amount of ${amount} has been processed."
+        )
         msg["Subject"] = "Refund Processed - Online Cinema"
         msg["From"] = settings.SMTP_USER
         msg["To"] = user_email
