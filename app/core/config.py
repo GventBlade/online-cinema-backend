@@ -15,6 +15,11 @@ class Settings(BaseSettings):
 
     # PostgreSQL
     DATABASE_URL: str = "postgresql://postgres:postgres@cinema_db:5432/online_cinema"
+    TEST_DATABASE_URL: str = "postgresql://postgres:postgres@cinema_db:5432/test_online_cinema"
+
+    # SWAGGER AUTH
+    SWAGGER_USER: str = "admin"
+    SWAGGER_PASSWORD: str = "super_secret_password_2026"
 
     # Redis
     REDIS_URL: str = "redis://cinema_redis:6379/0"
