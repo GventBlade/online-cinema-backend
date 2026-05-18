@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     SMTP_USER: str = "70b122e738a9c5"
     SMTP_PASSWORD: str = "c6465ef53c2d17"
 
+    STRIPE_SECRET_KEY: str = "mock_stripe_key"
+    STRIPE_WEBHOOK_SECRET: str = "mock_webhook_secret"
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
