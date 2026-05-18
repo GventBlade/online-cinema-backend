@@ -87,6 +87,8 @@ jobs:
             STRIPE_WEBHOOK_SECRET: mock_stripe_webhook_secret
             ACCESS_TOKEN_EXPIRE_MINUTES: "60"
             REFRESH_TOKEN_EXPIRE_DAYS: "30"
+            ALGORITHM: "HS256"
+            JWT_ALGORITHM: "HS256"
         run: poetry run pytest --cov=app --cov-report=xml
 
   deploy-to-ec2:
