@@ -72,7 +72,7 @@ jobs:
           STRIPE_SECRET_KEY: mock_stripe_secret_key
           STRIPE_WEBHOOK_SECRET: mock_stripe_webhook_secret
           ACCESS_TOKEN_EXPIRE_MINUTES: "60"
-          REFRESH_TOKEN_EXPIRE_MINUTES: "11520"
+          REFRESH_TOKEN_EXPIRE_DAYS: "30"
         run: poetry run pytest --cov=app --cov-report=xml
 
   deploy-to-ec2:
