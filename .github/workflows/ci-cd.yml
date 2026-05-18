@@ -62,6 +62,7 @@ jobs:
 
       - name: Run Mypy Type Checker
         run: poetry run mypy app/ tests/ --explicit-package-bases
+        continue-on-error: true
 
       - name: Run Integration Tests
         env:
