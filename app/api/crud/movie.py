@@ -66,7 +66,7 @@ def create_movie(db: Session, movie_in: movies_schema.MovieCreate) -> Movie:
         raise HTTPException(
             status_code=400,
             detail=f"Movie with name '{movie_in.name}',"
-                   f" year {movie_in.year} and duration {movie_in.time} already exists.",
+            f" year {movie_in.year} and duration {movie_in.time} already exists.",
         )
     genres = db.query(Genre).filter(Genre.id.in_(movie_in.genre_ids)).all()
     stars = db.query(Star).filter(Star.id.in_(movie_in.star_ids)).all()
