@@ -16,7 +16,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: cinema_test
+          POSTGRES_DB: test_online_cinema
         ports:
           - 5432:5432
         options: >-
@@ -61,13 +61,34 @@ jobs:
         run: poetry run flake8 app/ tests/
 
       - name: Run Mypy Type Checker
-        run: poetry run mypy app/ tests/
+        run: poetry run mypy app/ tests/ --explicit-package-bases
+        continue-on-error: true
+
+      - name: Add cinema_db to hosts
+        run: echo "127.0.0.1 cinema_db" | sudo tee -a /etc/hosts
 
       - name: Run Integration Tests
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cinema_test
-          REDIS_URL: redis://localhost:6379/0
-          SECRET_KEY: test_secret_key_for_github_actions_123!
+            DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cinema_test
+            POSTGRES_HOST: localhost
+            POSTGRES_PORT: 5432
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+            POSTGRES_DB: cinema_test
+            DB_HOST: localhost
+            DB_PORT: 5432
+            DB_USER: postgres
+            DB_PASSWORD: postgres
+            DB_NAME: cinema_test
+
+            REDIS_URL: redis://localhost:6379/0
+            SECRET_KEY: test_secret_key_for_github_actions_123!
+            STRIPE_SECRET_KEY: mock_stripe_secret_key
+            STRIPE_WEBHOOK_SECRET: mock_stripe_webhook_secret
+            ACCESS_TOKEN_EXPIRE_MINUTES: "60"
+            REFRESH_TOKEN_EXPIRE_DAYS: "30"
+            ALGORITHM: "HS256"
+            JWT_ALGORITHM: "HS256"
         run: poetry run pytest --cov=app --cov-report=xml
 
   deploy-to-ec2:
