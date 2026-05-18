@@ -16,7 +16,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: cinema_test
+          POSTGRES_DB: test_online_cinema
         ports:
           - 5432:5432
         options: >-
@@ -63,6 +63,9 @@ jobs:
       - name: Run Mypy Type Checker
         run: poetry run mypy app/ tests/ --explicit-package-bases
         continue-on-error: true
+
+      - name: Add cinema_db to hosts
+        run: echo "127.0.0.1 cinema_db" | sudo tee -a /etc/hosts
 
       - name: Run Integration Tests
         env:
