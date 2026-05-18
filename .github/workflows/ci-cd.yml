@@ -61,7 +61,7 @@ jobs:
         run: poetry run flake8 app/ tests/
 
       - name: Run Mypy Type Checker
-        run: poetry run mypy app/ tests/
+        run: poetry run mypy app/ tests/ --explicit-package-bases
 
       - name: Run Integration Tests
         env:
