@@ -46,3 +46,4 @@ The API will be available at http://127.0.0.1:8000.
 
 Interactive documentation (Swagger UI) can be found at http://127.0.0.1:8000/docs.
 # Cinema Deployment Checked
+
