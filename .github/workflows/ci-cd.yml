@@ -69,6 +69,10 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cinema_test
           REDIS_URL: redis://localhost:6379/0
           SECRET_KEY: test_secret_key_for_github_actions_123!
+          STRIPE_SECRET_KEY: mock_stripe_secret_key
+          STRIPE_WEBHOOK_SECRET: mock_stripe_webhook_secret
+          ACCESS_TOKEN_EXPIRE_MINUTES: "60"
+          REFRESH_TOKEN_EXPIRE_MINUTES: "11520"
         run: poetry run pytest --cov=app --cov-report=xml
 
   deploy-to-ec2:
