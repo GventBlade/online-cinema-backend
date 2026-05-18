@@ -107,8 +107,8 @@ jobs:
           username: ${{ secrets.AWS_EC2_USERNAME }}
           key: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
           script: |
-            cd /path/to/your/app/on/server  # Шлях до папки з проектом на EC2
+            cd /home/ubuntu/online-cinema-backend
             git pull origin main
-            docker-compose down
-            docker-compose up -build -d
-            docker-compose exec -T api poetry run alembic upgrade head
+            sudo docker compose down
+            sudo docker compose up --build -d
+            sudo docker compose exec -T api poetry run alembic upgrade head
