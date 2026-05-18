@@ -1,0 +1,93 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master, feature/testing-and-security ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+
+  code-quality-and-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cinema_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Cache Poetry virtualenv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          export PATH="$HOME/.local/bin:$PATH"
+          poetry config virtualenvs.create false
+          poetry install --no-interaction --no-root
+
+      - name: Run Black Formatter Check
+        run: poetry run black app/ tests/ --check
+
+      - name: Run Flake8 Linter
+        run: poetry run flake8 app/ tests/
+
+      - name: Run Mypy Type Checker
+        run: poetry run mypy app/ tests/
+
+      - name: Run Integration Tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cinema_test
+          REDIS_URL: redis://localhost:6379/0
+          SECRET_KEY: test_secret_key_for_github_actions_123!
+        run: poetry run pytest --cov=app --cov-report=xml
+
+  deploy-to-ec2:
+    needs: code-quality-and-tests
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy application via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AWS_EC2_HOST }}
+          username: ${{ secrets.AWS_EC2_USERNAME }}
+          key: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
+          script: |
+            cd /path/to/your/app/on/server  # Шлях до папки з проектом на EC2
+            git pull origin main
+            docker-compose down
+            docker-compose up -build -d
+            docker-compose exec -T api poetry run alembic upgrade head
